@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import subprocess
+import sys
 import time
 from logging.handlers import TimedRotatingFileHandler
 
@@ -12,7 +13,7 @@ from colorama import init, Fore, Style
 from one_dragon.base.notify.push import Push
 from one_dragon.utils import cmd_utils
 from one_dragon.utils import os_utils
-from script_chainer.config.script_config import ScriptConfig, ScriptChainConfig, CheckDoneMethods
+from script_chainer.config.script_config import ScriptConfig, ScriptChainConfig, AfterChainDoneOptions, CheckDoneMethods
 from script_chainer.context.script_chainer_context import ScriptChainerContext
 
 # 全局变量用于Push实例
@@ -84,6 +85,7 @@ def kill_process(process_name):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--chain', type=str, default='01', help='脚本链名称')
+    parser.add_argument('--close', action='store_true', help='结束后关闭窗口')
     parser.add_argument('--shutdown', action='store_true', help='结束后关机')
 
     return parser.parse_args()
@@ -264,12 +266,6 @@ def run():
 
             print_message('已完成全部脚本')
 
-        if args.shutdown:
-            cmd_utils.shutdown_sys(60)
-            print_message('准备关机')
-
-        print_message('5秒后关闭本窗口')
-        time.sleep(5)
     finally:
         # 清理Push资源
         global _push_instance
@@ -278,6 +274,16 @@ def run():
                 _push_instance.ctx.after_app_shutdown()
             except Exception as e:
                 log.error(f'清理Push资源失败: {e}')
+
+        # 处理关机和关闭窗口
+        if args.shutdown or chain_config.after_chain_done == AfterChainDoneOptions.SHUTDOWN.value:
+            cmd_utils.shutdown_sys(60)
+            print_message('准备关机')
+
+        if args.close or chain_config.after_chain_done == AfterChainDoneOptions.CLOSE_WINDOW.value:
+            print_message('5秒后关闭本窗口')
+            time.sleep(5)
+            sys.exit(0)
 
 
 if __name__ == '__main__':

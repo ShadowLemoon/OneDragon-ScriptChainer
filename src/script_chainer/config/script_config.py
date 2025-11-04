@@ -5,6 +5,12 @@ from one_dragon.base.config.config_item import ConfigItem, get_config_item_from_
 from one_dragon.base.config.yaml_config import YamlConfig
 
 
+class AfterChainDoneOptions(Enum):
+    NONE = ConfigItem(label='无操作', value='none')
+    CLOSE_WINDOW = ConfigItem(label='关闭窗口', value='close_window')
+    SHUTDOWN = ConfigItem(label='关机', value='shutdown')
+
+
 class CheckDoneMethods(Enum):
 
     GAME_CLOSED = ConfigItem(label='游戏被关闭', value='game_closed', desc='游戏被关闭时 认为任务完成')
@@ -136,8 +142,7 @@ class ScriptChainConfig(YamlConfig):
             self.script_list[i].idx = i
 
     def save(self):
-        self.data = {
-            'script_list': [
+        self.data['script_list'] = [
                 {
                     'script_path': i.script_path,
                     'script_process_name': i.script_process_name,
@@ -152,7 +157,7 @@ class ScriptChainConfig(YamlConfig):
                 }
                 for i in self.script_list
            ]
-        }
+
         YamlConfig.save(self)
 
     def add_one(self) -> ScriptConfig:
@@ -213,3 +218,13 @@ class ScriptChainConfig(YamlConfig):
         self.script_list[config.idx] = config
         self.init_idx()
         self.save()
+
+    @property
+    def after_chain_done(self) -> str:
+        """脚本链完成后的操作选项"""
+        return self.get('after_chain_done', AfterChainDoneOptions.NONE.value.value)
+
+    @after_chain_done.setter
+    def after_chain_done(self, new_value: str) -> None:
+        """脚本链完成后的操作选项"""
+        self.update('after_chain_done', new_value)

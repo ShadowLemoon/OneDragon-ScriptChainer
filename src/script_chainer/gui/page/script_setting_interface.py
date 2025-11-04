@@ -18,8 +18,10 @@ from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from script_chainer.config.script_config import ScriptChainConfig, ScriptConfig, GameProcessName, CheckDoneMethods, \
-    ScriptProcessName
+from script_chainer.config.script_config import (
+    AfterChainDoneOptions, CheckDoneMethods, ScriptProcessName, GameProcessName,
+    ScriptChainConfig, ScriptConfig
+)
 from script_chainer.context.script_chainer_context import ScriptChainerContext
 
 
@@ -286,6 +288,14 @@ class ScriptSettingInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.chain_opt)
 
+        self.after_chain_done_opt = ComboBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title='脚本链完成后操作',
+            options_enum=AfterChainDoneOptions,
+        )
+        self.after_chain_done_opt.value_changed.connect(self.on_after_chain_done_changed)
+        content_widget.add_widget(self.after_chain_done_opt)
+
         self.script_group = SettingCardGroup(gt('脚本链', 'ui'))
         self.script_card_list: list[ScriptSettingCard] = []
         content_widget.add_widget(self.script_group)
@@ -358,7 +368,7 @@ class ScriptSettingInterface(VerticalScrollInterface):
         """
         if self.chosen_config is None:
             return
-        
+
         dialog = ChainRenameDialog(self.chosen_config.module_name, parent=self.window())
         if dialog.exec():
             new_name = dialog.get_new_name()
@@ -393,6 +403,9 @@ class ScriptSettingInterface(VerticalScrollInterface):
         self.rename_chain_btn.setVisible(chosen)
         self.delete_chain_btn.setVisible(chosen)
 
+        self.after_chain_done_opt.setVisible(chosen)
+        self.after_chain_done_opt.setValue(self.chosen_config.after_chain_done, emit_signal=False)
+
         if not chosen:
             return
 
@@ -416,6 +429,16 @@ class ScriptSettingInterface(VerticalScrollInterface):
                 card.value_changed.connect(self.script_config_changed)
                 card.move_up.connect(self.script_config_move_up)
                 card.deleted.connect(self.script_config_deleted)
+
+    def on_after_chain_done_changed(self, index: int, value: str) -> None:
+        """
+        脚本链完成后操作改变
+        """
+        if self.chosen_config is None:
+            return
+
+        self.chosen_config.after_chain_done = value
+        self.chosen_config.save()
 
     def script_config_changed(self, config: ScriptConfig) -> None:
         """
